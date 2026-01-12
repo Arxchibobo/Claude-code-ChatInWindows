@@ -103,6 +103,10 @@ export class ManagementViewProvider {
                     await this._handleDisablePlugin(message.pluginId, requestId);
                     break;
 
+                case 'togglePlugin':
+                    await this._handleTogglePlugin(message.pluginId, requestId);
+                    break;
+
                 case 'getPluginStatus':
                     await this._handleGetPluginStatus(message.pluginId, requestId);
                     break;
@@ -195,6 +199,24 @@ export class ManagementViewProvider {
 
         if (success) {
             vscode.window.showInformationMessage(`Plugin "${pluginId}" disabled`);
+        }
+    }
+
+    private async _handleTogglePlugin(pluginId: string, requestId?: any): Promise<void> {
+        const currentStatus = this._pluginManager.getPluginEnabledStatus(pluginId);
+        const success = currentStatus
+            ? await this._pluginManager.disablePlugin(pluginId)
+            : await this._pluginManager.enablePlugin(pluginId);
+
+        this._sendMessage({
+            type: 'pluginToggled',
+            requestId,
+            data: { pluginId, success, enabled: !currentStatus }
+        });
+
+        if (success) {
+            const action = currentStatus ? 'disabled' : 'enabled';
+            vscode.window.showInformationMessage(`Plugin "${pluginId}" ${action}`);
         }
     }
 
@@ -326,7 +348,42 @@ export class ManagementViewProvider {
                         request: function(endpoint, options = {}) {
                             return new Promise((resolve, reject) => {
                                 const messageId = Date.now() + Math.random();
-                                const type = endpoint.replace('/api/', 'get');
+
+                                // Convert endpoint to message type with camelCase
+                                // /api/plugins -> getPlugins
+                                // /api/plugins/xxx/toggle -> togglePlugin
+                                let type = endpoint.replace('/api/', '');
+
+                                // Handle different endpoint patterns
+                                if (type === 'plugins') {
+                                    type = 'getPlugins';
+                                } else if (type === 'skills') {
+                                    type = 'getSkills';
+                                } else if (type === 'commands') {
+                                    type = 'getCommands';
+                                } else if (type === 'agents') {
+                                    type = 'getAgents';
+                                } else if (type.match(/^plugins\\/[^\\/]+\\/toggle$/)) {
+                                    const pluginId = type.split('/')[1];
+                                    type = 'togglePlugin';
+                                    if (!options.body) options.body = {};
+                                    options.body.pluginId = pluginId;
+                                } else if (type.match(/^skills\\/[^\\/]+$/)) {
+                                    const skillName = type.split('/')[1];
+                                    type = 'getSkillDetails';
+                                    if (!options.body) options.body = {};
+                                    options.body.skillName = skillName;
+                                } else if (type.match(/^commands\\/[^\\/]+$/)) {
+                                    const commandName = type.split('/')[1];
+                                    type = 'getCommandDetails';
+                                    if (!options.body) options.body = {};
+                                    options.body.commandName = commandName;
+                                } else if (type.match(/^agents\\/[^\\/]+$/)) {
+                                    const agentName = type.split('/')[1];
+                                    type = 'getAgentDetails';
+                                    if (!options.body) options.body = {};
+                                    options.body.agentName = agentName;
+                                }
 
                                 // 监听响应
                                 const handler = (event) => {
