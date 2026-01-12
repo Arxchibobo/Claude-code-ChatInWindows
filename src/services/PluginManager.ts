@@ -246,6 +246,189 @@ export class PluginManager {
     }
 
     /**
+     * 获取 settings.json 文件路径
+     */
+    private getSettingsPath(): string {
+        const homeDir = os.homedir();
+        return path.join(homeDir, '.claude', 'settings.json');
+    }
+
+    /**
+     * 读取 settings.json
+     */
+    private readSettings(): any {
+        try {
+            const settingsPath = this.getSettingsPath();
+            if (!fs.existsSync(settingsPath)) {
+                return { enabledPlugins: {} };
+            }
+
+            const content = fs.readFileSync(settingsPath, 'utf-8');
+            return JSON.parse(content);
+        } catch (error) {
+            console.error('[PluginManager] Error reading settings:', error);
+            return { enabledPlugins: {} };
+        }
+    }
+
+    /**
+     * 写入 settings.json
+     */
+    private writeSettings(settings: any): boolean {
+        try {
+            const settingsPath = this.getSettingsPath();
+            const settingsDir = path.dirname(settingsPath);
+
+            // 确保目录存在
+            if (!fs.existsSync(settingsDir)) {
+                fs.mkdirSync(settingsDir, { recursive: true });
+            }
+
+            fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+            return true;
+        } catch (error) {
+            console.error('[PluginManager] Error writing settings:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 启用插件
+     * @param pluginId 插件 ID（格式：插件名@marketplace名）
+     * @returns 是否成功
+     */
+    public async enablePlugin(pluginId: string): Promise<boolean> {
+        try {
+            console.log(`[PluginManager] Enabling plugin: ${pluginId}`);
+
+            const settings = this.readSettings();
+
+            if (!settings.enabledPlugins) {
+                settings.enabledPlugins = {};
+            }
+
+            // 设置为 enabled
+            settings.enabledPlugins[pluginId] = true;
+
+            const success = this.writeSettings(settings);
+
+            if (success) {
+                console.log(`[PluginManager] Successfully enabled plugin: ${pluginId}`);
+            }
+
+            return success;
+
+        } catch (error) {
+            console.error('[PluginManager] Failed to enable plugin:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 禁用插件
+     * @param pluginId 插件 ID（格式：插件名@marketplace名）
+     * @returns 是否成功
+     */
+    public async disablePlugin(pluginId: string): Promise<boolean> {
+        try {
+            console.log(`[PluginManager] Disabling plugin: ${pluginId}`);
+
+            const settings = this.readSettings();
+
+            if (!settings.enabledPlugins) {
+                settings.enabledPlugins = {};
+            }
+
+            // 设置为 disabled
+            settings.enabledPlugins[pluginId] = false;
+
+            const success = this.writeSettings(settings);
+
+            if (success) {
+                console.log(`[PluginManager] Successfully disabled plugin: ${pluginId}`);
+            }
+
+            return success;
+
+        } catch (error) {
+            console.error('[PluginManager] Failed to disable plugin:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 获取插件启用状态
+     * @param pluginId 插件 ID
+     * @returns 是否启用
+     */
+    public getPluginEnabledStatus(pluginId: string): boolean {
+        try {
+            const settings = this.readSettings();
+
+            if (!settings.enabledPlugins) {
+                return true; // 默认启用
+            }
+
+            // 如果没有设置，默认为启用
+            return settings.enabledPlugins[pluginId] !== false;
+
+        } catch (error) {
+            console.error('[PluginManager] Failed to get plugin status:', error);
+            return true; // 出错时默认启用
+        }
+    }
+
+    /**
+     * 批量启用插件
+     * @param pluginIds 插件 ID 列表
+     * @returns 是否成功
+     */
+    public async enablePlugins(pluginIds: string[]): Promise<boolean> {
+        try {
+            const settings = this.readSettings();
+
+            if (!settings.enabledPlugins) {
+                settings.enabledPlugins = {};
+            }
+
+            for (const pluginId of pluginIds) {
+                settings.enabledPlugins[pluginId] = true;
+            }
+
+            return this.writeSettings(settings);
+
+        } catch (error) {
+            console.error('[PluginManager] Failed to enable plugins:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 批量禁用插件
+     * @param pluginIds 插件 ID 列表
+     * @returns 是否成功
+     */
+    public async disablePlugins(pluginIds: string[]): Promise<boolean> {
+        try {
+            const settings = this.readSettings();
+
+            if (!settings.enabledPlugins) {
+                settings.enabledPlugins = {};
+            }
+
+            for (const pluginId of pluginIds) {
+                settings.enabledPlugins[pluginId] = false;
+            }
+
+            return this.writeSettings(settings);
+
+        } catch (error) {
+            console.error('[PluginManager] Failed to disable plugins:', error);
+            return false;
+        }
+    }
+
+    /**
      * 加载 marketplace 元数据
      * @param pluginsData 已安装插件数据
      */

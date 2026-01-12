@@ -6,6 +6,7 @@ import { ClaudeChatProvider } from './providers/ClaudeChatProvider';
 import { PluginManager } from './services/PluginManager';
 import { secretService } from './services/SecretService';
 import { DebugLogger } from './services/DebugLogger';
+import { ManagementViewProvider } from './providers/ManagementViewProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
 	// DEBUG: console.log('Claude Code Chat extension is being activated!');
@@ -85,6 +86,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		provider.show();
 	});
 
+	// Management view provider
+	const managementProvider = new ManagementViewProvider(context.extensionUri, context);
+
+	const managementDisposable = vscode.commands.registerCommand('claude-code-chatui.openManagement', () => {
+		managementProvider.show();
+	});
+
 	const loadConversationDisposable = vscode.commands.registerCommand('claude-code-chatui.loadConversation', (filename: string) => {
 		provider.loadConversation(filename);
 	});
@@ -114,7 +122,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	statusBarItem.command = 'claude-code-chatui.openChat';
 	statusBarItem.show();
 
-	context.subscriptions.push(disposable, loadConversationDisposable, operationTrackedCommand, operationChangedCommand, statusBarItem);
+	context.subscriptions.push(disposable, loadConversationDisposable, managementDisposable, operationTrackedCommand, operationChangedCommand, statusBarItem);
 	// DEBUG: console.log('Claude Code Chat extension activation completed successfully!');
 }
 

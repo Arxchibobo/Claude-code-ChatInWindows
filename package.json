@@ -2,7 +2,7 @@
   "name": "claude-code-chatui",
   "displayName": "Claude-Code ChatUI for Windows",
   "description": "Claude Code – ChatUI – Windows (No WSL)",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "publisher": "lkbaba",
   "author": "lkbaba",
   "repository": {
@@ -65,6 +65,12 @@
         "title": "Open Claude Code Chat",
         "category": "Claude Code Chat",
         "icon": "icon.png"
+      },
+      {
+        "command": "claude-code-chatui.openManagement",
+        "title": "Open Claude Management",
+        "category": "Claude Code Chat",
+        "icon": "icon.png"
       }
     ],
     "keybindings": [
@@ -78,6 +84,9 @@
       "commandPalette": [
         {
           "command": "claude-code-chatui.openChat"
+        },
+        {
+          "command": "claude-code-chatui.openManagement"
         }
       ],
       "editor/context": [
