@@ -87,53 +87,55 @@ export class ManagementViewProvider {
         try {
             console.log('[ManagementView] Received message:', message);
 
+            const requestId = message.requestId;
+
             switch (message.type) {
                 // ===== Plugins API =====
                 case 'getPlugins':
-                    await this._handleGetPlugins();
+                    await this._handleGetPlugins(requestId);
                     break;
 
                 case 'enablePlugin':
-                    await this._handleEnablePlugin(message.pluginId);
+                    await this._handleEnablePlugin(message.pluginId, requestId);
                     break;
 
                 case 'disablePlugin':
-                    await this._handleDisablePlugin(message.pluginId);
+                    await this._handleDisablePlugin(message.pluginId, requestId);
                     break;
 
                 case 'getPluginStatus':
-                    await this._handleGetPluginStatus(message.pluginId);
+                    await this._handleGetPluginStatus(message.pluginId, requestId);
                     break;
 
                 // ===== Skills API =====
                 case 'getSkills':
-                    await this._handleGetSkills();
+                    await this._handleGetSkills(requestId);
                     break;
 
                 case 'getSkillDetails':
-                    await this._handleGetSkillDetails(message.skillName, message.location);
+                    await this._handleGetSkillDetails(message.skillName, message.location, requestId);
                     break;
 
                 case 'searchSkills':
-                    await this._handleSearchSkills(message.query);
+                    await this._handleSearchSkills(message.query, requestId);
                     break;
 
                 // ===== Commands API =====
                 case 'getCommands':
-                    await this._handleGetCommands();
+                    await this._handleGetCommands(requestId);
                     break;
 
                 case 'getCommandDetails':
-                    await this._handleGetCommandDetails(message.commandName);
+                    await this._handleGetCommandDetails(message.commandName, requestId);
                     break;
 
                 // ===== Agents API =====
                 case 'getAgents':
-                    await this._handleGetAgents();
+                    await this._handleGetAgents(requestId);
                     break;
 
                 case 'getAgentDetails':
-                    await this._handleGetAgentDetails(message.agentName);
+                    await this._handleGetAgentDetails(message.agentName, requestId);
                     break;
 
                 default:
@@ -144,6 +146,7 @@ export class ManagementViewProvider {
             console.error('[ManagementView] Error handling message:', error);
             this._sendMessage({
                 type: 'error',
+                requestId: message.requestId,
                 error: error instanceof Error ? error.message : 'Unknown error'
             });
         }
@@ -151,7 +154,7 @@ export class ManagementViewProvider {
 
     // ===== Plugins Handlers =====
 
-    private async _handleGetPlugins(): Promise<void> {
+    private async _handleGetPlugins(requestId?: any): Promise<void> {
         const plugins = await this._pluginManager.loadInstalledPlugins(false);
 
         // 添加启用状态
@@ -162,17 +165,18 @@ export class ManagementViewProvider {
 
         this._sendMessage({
             type: 'pluginsData',
-            plugins: pluginsWithStatus
+            requestId,
+            data: pluginsWithStatus
         });
     }
 
-    private async _handleEnablePlugin(pluginId: string): Promise<void> {
+    private async _handleEnablePlugin(pluginId: string, requestId?: any): Promise<void> {
         const success = await this._pluginManager.enablePlugin(pluginId);
 
         this._sendMessage({
             type: 'pluginEnabled',
-            pluginId,
-            success
+            requestId,
+            data: { pluginId, success }
         });
 
         if (success) {
@@ -180,13 +184,13 @@ export class ManagementViewProvider {
         }
     }
 
-    private async _handleDisablePlugin(pluginId: string): Promise<void> {
+    private async _handleDisablePlugin(pluginId: string, requestId?: any): Promise<void> {
         const success = await this._pluginManager.disablePlugin(pluginId);
 
         this._sendMessage({
             type: 'pluginDisabled',
-            pluginId,
-            success
+            requestId,
+            data: { pluginId, success }
         });
 
         if (success) {
@@ -194,82 +198,89 @@ export class ManagementViewProvider {
         }
     }
 
-    private async _handleGetPluginStatus(pluginId: string): Promise<void> {
+    private async _handleGetPluginStatus(pluginId: string, requestId?: any): Promise<void> {
         const enabled = this._pluginManager.getPluginEnabledStatus(pluginId);
 
         this._sendMessage({
             type: 'pluginStatus',
-            pluginId,
-            enabled
+            requestId,
+            data: { pluginId, enabled }
         });
     }
 
     // ===== Skills Handlers =====
 
-    private async _handleGetSkills(): Promise<void> {
+    private async _handleGetSkills(requestId?: any): Promise<void> {
         const skills = await this._skillsManager.loadSkills(false);
 
         this._sendMessage({
             type: 'skillsData',
-            skills
+            requestId,
+            data: skills
         });
     }
 
-    private async _handleGetSkillDetails(skillName: string, location: string): Promise<void> {
+    private async _handleGetSkillDetails(skillName: string, location: string, requestId?: any): Promise<void> {
         const details = await this._skillsManager.getSkillDetails(skillName, location as any);
 
         this._sendMessage({
             type: 'skillDetails',
-            details
+            requestId,
+            data: details
         });
     }
 
-    private async _handleSearchSkills(query: string): Promise<void> {
+    private async _handleSearchSkills(query: string, requestId?: any): Promise<void> {
         const skills = await this._skillsManager.searchSkills(query);
 
         this._sendMessage({
             type: 'skillsSearchResults',
-            skills
+            requestId,
+            data: skills
         });
     }
 
     // ===== Commands Handlers =====
 
-    private async _handleGetCommands(): Promise<void> {
+    private async _handleGetCommands(requestId?: any): Promise<void> {
         const commands = await this._commandsManager.loadCommands(false);
 
         this._sendMessage({
             type: 'commandsData',
-            commands
+            requestId,
+            data: commands
         });
     }
 
-    private async _handleGetCommandDetails(commandName: string): Promise<void> {
+    private async _handleGetCommandDetails(commandName: string, requestId?: any): Promise<void> {
         const details = await this._commandsManager.getCommandDetails(commandName);
 
         this._sendMessage({
             type: 'commandDetails',
-            details
+            requestId,
+            data: details
         });
     }
 
     // ===== Agents Handlers =====
 
-    private async _handleGetAgents(): Promise<void> {
+    private async _handleGetAgents(requestId?: any): Promise<void> {
         const agents = await this._agentsManager.loadAgents(false);
 
         this._sendMessage({
             type: 'agentsData',
-            agents
+            requestId,
+            data: agents
         });
     }
 
-    private async _handleGetAgentDetails(agentName: string): Promise<void> {
+    private async _handleGetAgentDetails(agentName: string, requestId?: any): Promise<void> {
         const details = await this._agentsManager.getAgentDetails(agentName);
 
         this._sendMessage({
             type: 'agentDetails',
-            details
+            requestId,
+            data: details
         });
     }
 
